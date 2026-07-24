@@ -62,27 +62,32 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const { name, email, address, city, state, zip, country, size, color } = req.body || {};
+  const { name, email, address, city, state, zip, country, size, color, clerk_user_id } = req.body || {};
 
-  const required = { name, email, address, city, state, zip, country, size, color };
+  const required = { name, address, city, state, zip, country, size, color };
   for (const [key, value] of Object.entries(required)) {
     if (!value || typeof value !== "string" || !value.trim()) {
       return res.status(400).json({ error: `Missing field: ${key}` });
     }
   }
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+  const cleanEmail = (email || "").trim().toLowerCase();
+  if (cleanEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
     return res.status(400).json({ error: "Invalid email" });
   }
-
-  const cleanEmail = email.trim().toLowerCase();
 
   // Create (or find) the buyer in Clerk first, so the order can reference them.
   // Never let auth hiccups lose the sale — degrade gracefully.
   let clerk = { clerk_user_id: null, clerk_status: "error" };
-  try {
-    clerk = await upsertClerkUser({ name, email: cleanEmail });
-  } catch (err) {
-    console.error("Clerk step threw:", err.message);
+  if (clerk_user_id) {
+    clerk = { clerk_user_id, clerk_status: "client_session" };
+  } else if (cleanEmail) {
+    try {
+      clerk = await upsertClerkUser({ name, email: cleanEmail });
+    } catch (err) {
+      console.error("Clerk step threw:", err.message);
+    }
+  } else {
+    clerk = { clerk_user_id: null, clerk_status: "no_identity" };
   }
 
   try {
@@ -90,7 +95,7 @@ export default async function handler(req, res) {
     const orders = client.db("buried_destiny").collection("orders");
     const doc = {
       name: name.trim(),
-      email: cleanEmail,
+      email: cleanEmail || null,
       address: address.trim(),
       city: city.trim(),
       state: state.trim(),
