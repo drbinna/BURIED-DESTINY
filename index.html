@@ -200,9 +200,7 @@
 
   <div class="group">
     <div class="group-label">Shipping</div>
-    <form id="orderForm" action="https://formsubmit.co/YOUR-EMAIL-HERE" method="POST">
-      <input type="hidden" name="_subject" value="Buried Destiny — hoodie order">
-      <input type="hidden" name="_captcha" value="false">
+    <form id="orderForm" action="/api/order" method="POST">
       <input type="hidden" name="size" id="fieldSize" value="M">
       <input type="hidden" name="color" id="fieldColor" value="Bone">
       <div class="fields">
