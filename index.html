@@ -176,7 +176,7 @@
   <div class="line-name">Buried Destiny</div>
   <div class="product">
     <img id="productImg"
-         src="https://d8j0ntlcm91z4.cloudfront.net/user_3BnP0OHBeYVHeXDqCvT6zjiTj8a/hf_20260723_173430_7d815343-a9fd-4408-a3bb-f23fdebcdd10.jpeg"
+         src="/img/bone.jpg"
          alt="Zip hoodie, bone colorway">
   </div>
 
@@ -267,8 +267,8 @@
 
 <script>
   const IMAGES = {
-    bone: "https://d8j0ntlcm91z4.cloudfront.net/user_3BnP0OHBeYVHeXDqCvT6zjiTj8a/hf_20260723_173430_7d815343-a9fd-4408-a3bb-f23fdebcdd10.jpeg",
-    black: "https://d8j0ntlcm91z4.cloudfront.net/user_3BnP0OHBeYVHeXDqCvT6zjiTj8a/hf_20260723_204424_0176d49b-3b61-447a-ae64-053149cfd579.png"
+    bone: "/img/bone.jpg",
+    black: "/img/black.jpg"
   };
   const ALTS = {
     bone: "Zip hoodie, bone colorway",
@@ -286,6 +286,9 @@
       if(onSelect) onSelect(btn);
     });
   }
+  // Warm the cache for both colourways so switching is instant
+  Object.values(IMAGES).forEach(src => { const p = new Image(); p.src = src; });
+
   wireGroup('colorOpts', btn=>{
     const c = btn.dataset.color;
     img.src = IMAGES[c];
