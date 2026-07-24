@@ -306,6 +306,71 @@
     const b = e.target.closest('.opt'); if(b) fieldColor.value = b.textContent.trim();
   });
 
+  // Clerk modal skinned to the Buried Destiny palette
+  const BD = { bg:'#E7E5E1', ink:'#1a1a1a', mute:'#8f8d89' };
+  const SANS = '"Helvetica Neue", Helvetica, Arial, sans-serif';
+  const CLERK_LOOK = {
+    layout: { socialButtonsVariant: 'blockButton', showOptionalFields: false },
+    variables: {
+      colorBackground: BD.bg,
+      colorPrimary: BD.ink,
+      colorText: BD.ink,
+      colorTextSecondary: BD.mute,
+      colorInputBackground: 'transparent',
+      colorInputText: BD.ink,
+      colorNeutral: BD.ink,
+      fontFamily: SANS,
+      fontSize: '12px',
+      borderRadius: '0px'
+    },
+    elements: {
+      card: { backgroundColor: BD.bg, boxShadow: 'none', border: '1px solid ' + BD.ink, borderRadius: '0' },
+      modalContent: { borderRadius: '0' },
+      logoBox: { display: 'none' },
+      headerTitle: {
+        fontFamily: SANS, fontSize: '12px', fontWeight: '400',
+        letterSpacing: '.34em', textTransform: 'uppercase', color: BD.ink
+      },
+      headerSubtitle: {
+        fontSize: '10px', letterSpacing: '.14em', textTransform: 'uppercase', color: BD.mute
+      },
+      socialButtonsBlockButton: {
+        border: '1px solid ' + BD.ink, borderRadius: '0', backgroundColor: 'transparent',
+        color: BD.ink, height: '44px',
+        '&:hover': { backgroundColor: BD.ink, color: BD.bg }
+      },
+      socialButtonsBlockButtonText: {
+        fontSize: '11px', letterSpacing: '.14em', textTransform: 'uppercase', fontWeight: '400'
+      },
+      dividerLine: { backgroundColor: BD.mute },
+      dividerText: { fontSize: '9px', letterSpacing: '.2em', textTransform: 'uppercase', color: BD.mute },
+      formFieldLabel: { fontSize: '9px', letterSpacing: '.2em', textTransform: 'uppercase', color: BD.mute },
+      formFieldInput: {
+        borderRadius: '0', border: '1px solid ' + BD.ink, backgroundColor: 'transparent',
+        fontSize: '11px', letterSpacing: '.12em', height: '44px', color: BD.ink
+      },
+      formButtonPrimary: {
+        borderRadius: '0', backgroundColor: BD.ink, color: BD.bg, height: '44px',
+        fontSize: '11px', letterSpacing: '.14em', textTransform: 'uppercase', fontWeight: '400',
+        boxShadow: 'none', '&:hover': { backgroundColor: '#000' }
+      },
+      footer: { background: BD.bg, borderTop: '1px solid rgba(26,26,26,.12)' },
+      footerAction: { background: BD.bg },
+      footerActionText: { fontSize: '9px', letterSpacing: '.14em', textTransform: 'uppercase', color: BD.mute },
+      footerActionLink: {
+        fontSize: '9px', letterSpacing: '.14em', textTransform: 'uppercase',
+        color: BD.ink, textDecoration: 'underline'
+      },
+      identityPreview: { borderRadius: '0', border: '1px solid ' + BD.mute, backgroundColor: 'transparent' },
+      modalCloseButton: { color: BD.ink },
+      badge: { display: 'none' }
+    }
+  };
+  const CLERK_COPY = {
+    signIn:  { start: { title: 'Buried Destiny', subtitle: 'Sign in to complete your order' } },
+    signUp:  { start: { title: 'Buried Destiny', subtitle: 'Create an account to complete your order' } }
+  };
+
   // Buy flow: validate shipping form -> Clerk sign-in modal -> save order -> PayPal
   const PAYPAL_URL = 'https://www.paypal.me/drbinna123/10';
   const buyBtn = document.getElementById('buyBtn');
@@ -316,7 +381,7 @@
     let tries = 0;
     const tryLoad = async () => {
       if (window.Clerk) {
-        try { await window.Clerk.load(); clerkReady = true; }
+        try { await window.Clerk.load({ appearance: CLERK_LOOK, localization: CLERK_COPY }); clerkReady = true; }
         catch(e){ console.error('Clerk failed to load', e); }
       } else if (tries++ < 50) {
         setTimeout(tryLoad, 200);
@@ -362,7 +427,7 @@
           submitOrderAndPay();
         }
       });
-      window.Clerk.openSignIn({});
+      window.Clerk.openSignIn({ appearance: CLERK_LOOK });
     } else {
       // Clerk unavailable -- do not lose the sale; save with form data only and continue
       submitOrderAndPay();
