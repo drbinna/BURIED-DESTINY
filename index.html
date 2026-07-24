@@ -371,18 +371,74 @@
     signUp:  { start: { title: 'Buried Destiny', subtitle: 'Create an account to complete your order' } }
   };
 
-  // Buy flow: validate shipping form -> Clerk sign-in modal -> save order -> PayPal
+  // Buy flow: validate form -> Clerk auth -> save order -> PayPal.
+  // Google auth navigates away from the page, so the order is stashed first
+  // and replayed the moment we land back here signed in.
   const PAYPAL_URL = 'https://www.paypal.me/drbinna123/10';
+  const RETURN_URL = location.origin + '/?checkout=1';
+  const STASH_KEY  = 'bd_pending_order';
   const buyBtn = document.getElementById('buyBtn');
   const orderForm = document.getElementById('orderForm');
   let clerkReady = false;
+
+  function showHandoff(){
+    const o = document.createElement('div');
+    o.setAttribute('style',
+      'position:fixed;inset:0;z-index:9999;background:#E7E5E1;color:#1a1a1a;' +
+      'display:flex;align-items:center;justify-content:center;' +
+      'font:400 11px/1 "Helvetica Neue",Helvetica,Arial,sans-serif;letter-spacing:.34em;text-transform:uppercase');
+    o.textContent = 'Redirecting to PayPal';
+    document.body.appendChild(o);
+  }
+
+  function collectPayload(){
+    return Object.fromEntries(new FormData(orderForm).entries());
+  }
+
+  function withClerkIdentity(payload){
+    const u = window.Clerk && window.Clerk.user;
+    if (u) {
+      payload.email = (u.primaryEmailAddress && u.primaryEmailAddress.emailAddress) || payload.email || '';
+      payload.clerk_user_id = u.id;
+      if (!payload.name || !payload.name.trim()) payload.name = u.fullName || payload.name;
+    }
+    return payload;
+  }
+
+  async function sendOrderAndPay(payload){
+    showHandoff();
+    try {
+      await fetch('/api/order', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify(withClerkIdentity(payload)),
+        keepalive:true
+      });
+    } catch(e){ console.error('Order save failed', e); }
+    try { sessionStorage.removeItem(STASH_KEY); } catch(e){}
+    window.location.replace(PAYPAL_URL);
+  }
+
+  // Landed back here after Google auth? Replay the stashed order and go straight to PayPal.
+  function resumeCheckout(){
+    if (new URLSearchParams(location.search).get('checkout') !== '1') return;
+    history.replaceState({}, '', location.pathname);   // so a refresh can't re-fire
+    if (!(window.Clerk && window.Clerk.user)) return;
+    let stashed = null;
+    try { stashed = JSON.parse(sessionStorage.getItem(STASH_KEY) || 'null'); } catch(e){}
+    if (!stashed) return;
+    sendOrderAndPay(stashed);
+  }
 
   (function initClerk(){
     let tries = 0;
     const tryLoad = async () => {
       if (window.Clerk) {
-        try { await window.Clerk.load({ appearance: CLERK_LOOK, localization: CLERK_COPY }); clerkReady = true; }
-        catch(e){ console.error('Clerk failed to load', e); }
+        try {
+          await window.Clerk.load({ appearance: CLERK_LOOK, localization: CLERK_COPY });
+          clerkReady = true;
+          resumeCheckout();
+        } catch(e){ console.error('Clerk failed to load', e); }
       } else if (tries++ < 50) {
         setTimeout(tryLoad, 200);
       }
@@ -390,47 +446,41 @@
     tryLoad();
   })();
 
-  async function submitOrderAndPay(){
-    const payload = Object.fromEntries(new FormData(orderForm).entries());
-    const u = window.Clerk && window.Clerk.user;
-    if (u) {
-      payload.email = (u.primaryEmailAddress && u.primaryEmailAddress.emailAddress) || '';
-      payload.clerk_user_id = u.id;
-      if (!payload.name || !payload.name.trim()) payload.name = u.fullName || payload.name;
-    }
-    try {
-      await fetch('/api/order', {
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body: JSON.stringify(payload),
-        keepalive:true
-      });
-    } catch(e){ console.error('Order save failed', e); }
-    window.location.href = PAYPAL_URL;
-  }
-
   buyBtn.addEventListener('click', function(ev){
     ev.preventDefault();
     if(!orderForm.checkValidity()){
       orderForm.reportValidity();
       return;
     }
-    if (clerkReady && window.Clerk.user) {
-      submitOrderAndPay();
+    const payload = collectPayload();
+
+    if (clerkReady && window.Clerk.user) {      // already signed in
+      sendOrderAndPay(payload);
       return;
     }
+
     if (clerkReady) {
+      try { sessionStorage.setItem(STASH_KEY, JSON.stringify(payload)); } catch(e){}
+
+      // In-modal auth (email/password) finishes without navigating; handle that too.
       const unsub = window.Clerk.addListener(function(state){
         if (state.user) {
           unsub();
           try { window.Clerk.closeSignIn(); } catch(e){}
-          submitOrderAndPay();
+          sendOrderAndPay(payload);
         }
       });
-      window.Clerk.openSignIn({ appearance: CLERK_LOOK });
+
+      window.Clerk.openSignIn({
+        appearance: CLERK_LOOK,
+        forceRedirectUrl: RETURN_URL,
+        signUpForceRedirectUrl: RETURN_URL,
+        fallbackRedirectUrl: RETURN_URL,
+        signUpFallbackRedirectUrl: RETURN_URL
+      });
     } else {
-      // Clerk unavailable -- do not lose the sale; save with form data only and continue
-      submitOrderAndPay();
+      // Clerk unavailable -- never lose the sale
+      sendOrderAndPay(payload);
     }
   });
 </script>
