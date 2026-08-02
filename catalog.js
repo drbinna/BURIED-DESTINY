@@ -1,4 +1,6 @@
 // Single source of truth for the product catalogue.
+// Each product: slug (stable identifier, also the order key), name (the piece),
+// subtitle (the garment spec), price, sizes and colourways.
 // Imported by the browser (index.html) and by the order API, so pricing and
 // option validation can never drift between what a buyer sees and what the
 // server records. Add new products by appending to PRODUCTS.
@@ -6,7 +8,8 @@
 export const PRODUCTS = [
   {
     slug: "three-monks-zip-hoodie",
-    name: "Three Monks Pullover Hoodie",
+    name: "Three Monks",
+    subtitle: "Graphic pullover hoodie",
     price_usd: 10,
     sizes: ["S", "M", "L", "XL"],
     colors: [
@@ -26,7 +29,8 @@ export const PRODUCTS = [
   },
   {
     slug: "christ-is-king-cropped-zip-hoodie",
-    name: "Christ Is King Cropped Zip Hoodie",
+    name: "Christ Is King",
+    subtitle: "Graphic cropped zip hoodie \u00b7 Camo sleeves",
     price_usd: 10,
     sizes: ["S", "M", "L", "XL"],
     colors: [

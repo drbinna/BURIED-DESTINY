@@ -186,6 +186,14 @@
   .card-name{
     font-size:11px;text-transform:uppercase;letter-spacing:.2em;margin-top:16px;
   }
+  .card-sub{
+    font-size:9px;text-transform:uppercase;letter-spacing:.16em;
+    color:var(--mute);margin-top:7px;
+  }
+  .subtitle{
+    font-size:10px;text-transform:uppercase;letter-spacing:.18em;
+    color:var(--mute);margin-top:12px;
+  }
   .card-price{
     font-size:10px;text-transform:uppercase;letter-spacing:.16em;
     color:var(--mute);margin-top:8px;
@@ -219,6 +227,7 @@
     </div>
 
     <h1 id="productName"></h1>
+    <div class="subtitle" id="productSub"></div>
     <div class="price" id="productPrice"></div>
 
     <div class="group">
@@ -306,6 +315,7 @@
   const detailView   = document.getElementById('detailView');
   const productGrid  = document.getElementById('productGrid');
   const productName  = document.getElementById('productName');
+  const productSub   = document.getElementById('productSub');
   const productPrice = document.getElementById('productPrice');
   const colorOpts    = document.getElementById('colorOpts');
   const sizeOpts     = document.getElementById('sizeOpts');
@@ -329,10 +339,12 @@
       im.src = first.image; im.alt = first.alt;
       const nm = document.createElement('span');
       nm.className = 'card-name'; nm.textContent = p.name;
+      const sb = document.createElement('span');
+      sb.className = 'card-sub'; sb.textContent = p.subtitle || '';
       const pr = document.createElement('span');
       pr.className = 'card-price';
       pr.innerHTML = '$' + p.price_usd + ' &middot; Shipping Included';
-      card.append(im, nm, pr);
+      card.append(im, nm, sb, pr);
       card.addEventListener('click', () => { location.hash = '#/' + p.slug; });
       productGrid.appendChild(card);
     });
@@ -362,6 +374,7 @@
   function renderDetail(p){
     current = p;
     productName.textContent = p.name;
+    productSub.textContent  = p.subtitle || '';
     productPrice.innerHTML  = '$' + p.price_usd + ' &nbsp;&middot;&nbsp; Shipping Included';
     fieldProduct.value      = p.slug;
     document.title          = p.name.toUpperCase() + ' \u2014 BURIED DESTINY';
