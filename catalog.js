@@ -6,7 +6,7 @@
 export const PRODUCTS = [
   {
     slug: "three-monks-zip-hoodie",
-    name: "Three Monks Zip Hoodie",
+    name: "Three Monks Pullover Hoodie",
     price_usd: 10,
     sizes: ["S", "M", "L", "XL"],
     colors: [
@@ -14,19 +14,19 @@ export const PRODUCTS = [
         key: "bone",
         label: "Bone",
         image: "/img/monks-bone.jpg",
-        alt: "Three Monks zip hoodie, bone colorway",
+        alt: "Three Monks pullover hoodie, bone colorway",
       },
       {
         key: "black",
         label: "Black",
         image: "/img/monks-black.jpg",
-        alt: "Three Monks zip hoodie, black colorway",
+        alt: "Three Monks pullover hoodie, black colorway",
       },
     ],
   },
   {
-    slug: "crucifix-cropped-zip-hoodie",
-    name: "Crucifix Cropped Zip Hoodie",
+    slug: "christ-is-king-cropped-zip-hoodie",
+    name: "Christ Is King Cropped Zip Hoodie",
     price_usd: 10,
     sizes: ["S", "M", "L", "XL"],
     colors: [
@@ -34,13 +34,13 @@ export const PRODUCTS = [
         key: "bone",
         label: "Bone",
         image: "/img/crucifix-bone.jpg",
-        alt: "Crucifix cropped zip hoodie, bone colorway, back print",
+        alt: "Christ Is King cropped zip hoodie, bone colorway, back print",
       },
       {
         key: "black",
         label: "Black",
         image: "/img/crucifix-black.jpg",
-        alt: "Crucifix cropped zip hoodie, black colorway, back print",
+        alt: "Christ Is King cropped zip hoodie, black colorway, back print",
       },
     ],
   },
