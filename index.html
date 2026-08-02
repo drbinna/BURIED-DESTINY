@@ -166,6 +166,39 @@
   @media (prefers-reduced-motion: reduce){
     *{transition:none!important}
   }
+
+  .grid{
+    display:grid;
+    grid-template-columns:repeat(2,1fr);
+    gap:28px 20px;
+    width:100%;
+    margin-top:8px;
+  }
+  @media (max-width:520px){ .grid{grid-template-columns:1fr;gap:34px} }
+  .card{
+    background:none;border:0;padding:0;margin:0;
+    font:inherit;color:inherit;cursor:pointer;text-align:center;
+    display:flex;flex-direction:column;align-items:center;
+  }
+  .card img{width:100%;display:block;mix-blend-mode:multiply;transition:opacity .15s}
+  .card:hover img{opacity:.82}
+  .card:focus-visible{outline:1px solid var(--ink);outline-offset:4px}
+  .card-name{
+    font-size:11px;text-transform:uppercase;letter-spacing:.2em;margin-top:16px;
+  }
+  .card-price{
+    font-size:10px;text-transform:uppercase;letter-spacing:.16em;
+    color:var(--mute);margin-top:8px;
+  }
+  .back{
+    align-self:flex-start;
+    background:none;border:0;padding:0;margin:0 0 28px;
+    font:inherit;color:var(--mute);cursor:pointer;
+    font-size:10px;text-transform:uppercase;letter-spacing:.2em;
+  }
+  .back:hover{color:var(--ink)}
+  .back:focus-visible{outline:1px solid var(--ink);outline-offset:3px}
+  [hidden]{display:none!important}
 </style>
 <script async crossorigin="anonymous"
   data-clerk-publishable-key="pk_live_Y2xlcmsudXNlZ29ibGluLnh5eiQ"
@@ -174,36 +207,34 @@
 <body>
 <main>
   <div class="line-name">Buried Destiny</div>
-  <div class="product">
-    <img id="productImg"
-         src="/img/bone.jpg"
-         alt="Zip hoodie, bone colorway">
-  </div>
+  <section id="gridView">
+    <div class="grid" id="productGrid"></div>
+  </section>
 
-  <h1>Zip Hoodie</h1>
-  <div class="price">$10 &nbsp;·&nbsp; Shipping Included</div>
+  <section id="detailView" hidden>
+    <button class="back" id="backBtn" type="button">&larr; All products</button>
 
-  <div class="group">
-    <div class="group-label">Color</div>
-    <div class="opts" id="colorOpts">
-      <button class="opt" aria-pressed="true" data-color="bone">Bone</button>
-      <button class="opt" aria-pressed="false" data-color="black">Black</button>
+    <div class="product">
+      <img id="productImg" src="" alt="">
     </div>
-  </div>
 
-  <div class="group">
-    <div class="group-label">Size</div>
-    <div class="opts" id="sizeOpts">
-      <button class="opt" aria-pressed="false">S</button>
-      <button class="opt" aria-pressed="true">M</button>
-      <button class="opt" aria-pressed="false">L</button>
-      <button class="opt" aria-pressed="false">XL</button>
+    <h1 id="productName"></h1>
+    <div class="price" id="productPrice"></div>
+
+    <div class="group">
+      <div class="group-label">Color</div>
+      <div class="opts" id="colorOpts"></div>
     </div>
-  </div>
+
+    <div class="group">
+      <div class="group-label">Size</div>
+      <div class="opts" id="sizeOpts"></div>
+    </div>
 
   <div class="group">
     <div class="group-label">Shipping</div>
     <form id="orderForm" action="/api/order" method="POST">
+      <input type="hidden" name="product" id="fieldProduct" value="">
       <input type="hidden" name="size" id="fieldSize" value="M">
       <input type="hidden" name="color" id="fieldColor" value="Bone">
       <div class="fields">
@@ -263,48 +294,114 @@
   <p class="note">
     Pays via PayPal. Order details are sent automatically when you buy. All sales final.
   </p>
+  </section>
 </main>
 
-<script>
-  const IMAGES = {
-    bone: "/img/bone.jpg",
-    black: "/img/black.jpg"
-  };
-  const ALTS = {
-    bone: "Zip hoodie, bone colorway",
-    black: "Zip hoodie, black colorway"
-  };
-  const img = document.getElementById('productImg');
+<script type="module">
+  import { PRODUCTS, bySlug, paypalUrl } from '/catalog.js';
 
-  function wireGroup(id, onSelect){
-    const group = document.getElementById(id);
-    group.addEventListener('click', e=>{
-      const btn = e.target.closest('.opt');
-      if(!btn) return;
-      group.querySelectorAll('.opt').forEach(b=>b.setAttribute('aria-pressed','false'));
-      btn.setAttribute('aria-pressed','true');
-      if(onSelect) onSelect(btn);
+  const buyBtn       = document.getElementById('buyBtn');
+  const img          = document.getElementById('productImg');
+  const gridView     = document.getElementById('gridView');
+  const detailView   = document.getElementById('detailView');
+  const productGrid  = document.getElementById('productGrid');
+  const productName  = document.getElementById('productName');
+  const productPrice = document.getElementById('productPrice');
+  const colorOpts    = document.getElementById('colorOpts');
+  const sizeOpts     = document.getElementById('sizeOpts');
+  const fieldProduct = document.getElementById('fieldProduct');
+  const fieldSize    = document.getElementById('fieldSize');
+  const fieldColor   = document.getElementById('fieldColor');
+
+  let current = null;   // product currently on screen
+
+  // Warm every colourway so switching is instant
+  PRODUCTS.forEach(p => p.colors.forEach(c => { const i = new Image(); i.src = c.image; }));
+
+  function renderGrid(){
+    productGrid.innerHTML = '';
+    PRODUCTS.forEach(p => {
+      const first = p.colors[0];
+      const card = document.createElement('button');
+      card.type = 'button';
+      card.className = 'card';
+      const im = document.createElement('img');
+      im.src = first.image; im.alt = first.alt;
+      const nm = document.createElement('span');
+      nm.className = 'card-name'; nm.textContent = p.name;
+      const pr = document.createElement('span');
+      pr.className = 'card-price';
+      pr.innerHTML = '$' + p.price_usd + ' &middot; Shipping Included';
+      card.append(im, nm, pr);
+      card.addEventListener('click', () => { location.hash = '#/' + p.slug; });
+      productGrid.appendChild(card);
     });
   }
-  // Warm the cache for both colourways so switching is instant
-  Object.values(IMAGES).forEach(src => { const p = new Image(); p.src = src; });
 
-  wireGroup('colorOpts', btn=>{
-    const c = btn.dataset.color;
-    img.src = IMAGES[c];
-    img.alt = ALTS[c];
-  });
-  wireGroup('sizeOpts');
+  function optButton(label, pressed){
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'opt';
+    b.setAttribute('aria-pressed', pressed ? 'true' : 'false');
+    b.textContent = label;
+    return b;
+  }
 
-  // Keep hidden size/color fields in sync with the selectors
-  const fieldSize = document.getElementById('fieldSize');
-  const fieldColor = document.getElementById('fieldColor');
-  document.getElementById('sizeOpts').addEventListener('click', e=>{
-    const b = e.target.closest('.opt'); if(b) fieldSize.value = b.textContent.trim();
-  });
-  document.getElementById('colorOpts').addEventListener('click', e=>{
-    const b = e.target.closest('.opt'); if(b) fieldColor.value = b.textContent.trim();
-  });
+  function press(group, btn){
+    group.querySelectorAll('.opt').forEach(b => b.setAttribute('aria-pressed','false'));
+    btn.setAttribute('aria-pressed','true');
+  }
+
+  function selectColor(c, btn){
+    img.src = c.image;
+    img.alt = c.alt;
+    fieldColor.value = c.label;
+    press(colorOpts, btn);
+  }
+
+  function renderDetail(p){
+    current = p;
+    productName.textContent = p.name;
+    productPrice.innerHTML  = '$' + p.price_usd + ' &nbsp;&middot;&nbsp; Shipping Included';
+    fieldProduct.value      = p.slug;
+    document.title          = p.name.toUpperCase() + ' \u2014 BURIED DESTINY';
+
+    colorOpts.innerHTML = '';
+    p.colors.forEach((c, i) => {
+      const b = optButton(c.label, i === 0);
+      b.addEventListener('click', () => selectColor(c, b));
+      colorOpts.appendChild(b);
+      if (i === 0) selectColor(c, b);
+    });
+
+    sizeOpts.innerHTML = '';
+    const defaultSize = p.sizes.includes('M') ? 'M' : p.sizes[0];
+    p.sizes.forEach(size => {
+      const b = optButton(size, size === defaultSize);
+      b.addEventListener('click', () => { press(sizeOpts, b); fieldSize.value = size; });
+      sizeOpts.appendChild(b);
+    });
+    fieldSize.value = defaultSize;
+
+    buyBtn.textContent = 'Buy \u2014 $' + p.price_usd;
+    buyBtn.href = paypalUrl(p.price_usd);
+  }
+
+  function route(){
+    const m = location.hash.match(/^#\/(.+)$/);
+    const p = m ? bySlug(m[1]) : null;
+    if (p) {
+      renderDetail(p);
+      gridView.hidden = true;
+      detailView.hidden = false;
+    } else {
+      current = null;
+      document.title = 'BURIED DESTINY';
+      detailView.hidden = true;
+      gridView.hidden = false;
+    }
+    window.scrollTo(0, 0);
+  }
 
   // Clerk modal skinned to the Buried Destiny palette
   const BD = { bg:'#E7E5E1', ink:'#1a1a1a', mute:'#8f8d89' };
@@ -374,10 +471,8 @@
   // Buy flow: validate form -> Clerk auth -> save order -> PayPal.
   // Google auth navigates away from the page, so the order is stashed first
   // and replayed the moment we land back here signed in.
-  const PAYPAL_URL = 'https://www.paypal.me/drbinna123/10';
   const RETURN_URL = location.origin + '/?checkout=1';
   const STASH_KEY  = 'bd_pending_order';
-  const buyBtn = document.getElementById('buyBtn');
   const orderForm = document.getElementById('orderForm');
   let clerkReady = false;
 
@@ -416,7 +511,7 @@
       });
     } catch(e){ console.error('Order save failed', e); }
     try { sessionStorage.removeItem(STASH_KEY); } catch(e){}
-    window.location.replace(PAYPAL_URL);
+    window.location.replace(paypalUrl((current || {}).price_usd || 10));
   }
 
   // Landed back here after Google auth? Replay the stashed order and go straight to PayPal.
@@ -445,6 +540,12 @@
     };
     tryLoad();
   })();
+
+  renderGrid();
+  window.addEventListener('hashchange', route);
+  document.getElementById('backBtn')
+          .addEventListener('click', () => { location.hash = ''; });
+  route();
 
   buyBtn.addEventListener('click', function(ev){
     ev.preventDefault();

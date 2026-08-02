@@ -1,4 +1,5 @@
 import { MongoClient } from "mongodb";
+import { bySlug } from "../catalog.js";
 
 let cachedClient = null;
 
@@ -62,7 +63,14 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const { name, email, address, city, state, zip, country, size, color, clerk_user_id } = req.body || {};
+  const { name, email, address, city, state, zip, country, size, color, product, clerk_user_id } = req.body || {};
+
+  // Resolve the product against the catalogue. Price and options come from the
+  // server side only -- never from whatever the client happened to POST.
+  const item = bySlug((product || "").trim());
+  if (!item) {
+    return res.status(400).json({ error: "Unknown product" });
+  }
 
   const required = { name, address, city, state, zip, country, size, color };
   for (const [key, value] of Object.entries(required)) {
@@ -70,6 +78,13 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: `Missing field: ${key}` });
     }
   }
+  if (!item.sizes.includes(size.trim())) {
+    return res.status(400).json({ error: "Unavailable size for this product" });
+  }
+  if (!item.colors.some((c) => c.label === color.trim())) {
+    return res.status(400).json({ error: "Unavailable color for this product" });
+  }
+
   const cleanEmail = (email || "").trim().toLowerCase();
   if (cleanEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
     return res.status(400).json({ error: "Invalid email" });
@@ -103,8 +118,9 @@ export default async function handler(req, res) {
       country: country.trim(),
       size: size.trim(),
       color: color.trim(),
-      product: "three-monks-zip-hoodie",
-      price_usd: 10,
+      product: item.slug,
+      product_name: item.name,
+      price_usd: item.price_usd,
       status: "pending_payment",
       clerk_user_id: clerk.clerk_user_id,
       clerk_status: clerk.clerk_status,
